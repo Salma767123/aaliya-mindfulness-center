@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
+import { useMediaQuery } from "@/lib/use-media-query";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import type { MindfulNote } from "@/types/content";
 import { images } from "@/content/images";
-import { ParallaxImage } from "@/components/motion/parallax";
+import { Parallax, ParallaxImage } from "@/components/motion/parallax";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/reveal";
 import { SplitHeading } from "@/components/motion/split-heading";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -27,6 +28,11 @@ export function Breathing({ notes }: { notes: MindfulNote[] }) {
   const [paused, setPaused] = useState(false);
   const [phase, setPhase] = useState(0);
   const running = inView && !paused && !reduce;
+  /* Depth as the page scrolls, in px either way: the lake furthest back, the words in front of it,
+     the breath nearest of all, and the three notes each a little nearer than the last.
+     Stacked, on a phone, things travel less so they never close on one another. */
+  const beside = useMediaQuery("(min-width: 1024px)");
+  const inThree = useMediaQuery("(min-width: 768px)");
 
   // Step through in / hold / out while the section is on screen.
   useEffect(() => {
@@ -40,12 +46,12 @@ export function Breathing({ notes }: { notes: MindfulNote[] }) {
   return (
     <section className="relative overflow-clip bg-emerald-950 text-white">
       <div ref={ref} className="relative flex items-center lg:min-h-[64svh]">
-        <ParallaxImage image={images.swanLake} sizes="100vw" amount={9} className="!absolute inset-0" />
+        <ParallaxImage image={images.swanLake} sizes="100vw" amount={10.5} className="!absolute inset-0" />
         <div aria-hidden className="absolute inset-0 bg-emerald-950/62" />
         <div aria-hidden className="absolute inset-0 bg-linear-to-b from-emerald-950/70 via-transparent to-emerald-950" />
 
         <div className="shell relative grid items-center gap-x-10 gap-y-12 py-16 lg:grid-cols-12 lg:py-20">
-          <div className="lg:col-span-6">
+          <Parallax distance={beside ? -30 : -10} className="lg:col-span-6">
             <Reveal>
               <Eyebrow index="05" tone="light">
                 A mindful moment
@@ -62,9 +68,10 @@ export function Breathing({ notes }: { notes: MindfulNote[] }) {
                 Three rounds is enough to feel the difference.
               </p>
             </Reveal>
-          </div>
+          </Parallax>
 
           <Reveal variant="scale" className="lg:col-span-5 lg:col-start-8">
+            <Parallax distance={beside ? 64 : 18}>
             <div className="relative mx-auto grid aspect-square w-full max-w-[26rem] place-items-center">
               {/* still rings */}
               <span aria-hidden className="absolute inset-0 rounded-full border border-white/14" />
@@ -100,6 +107,7 @@ export function Breathing({ notes }: { notes: MindfulNote[] }) {
                 ) : null}
               </div>
             </div>
+            </Parallax>
           </Reveal>
         </div>
       </div>
@@ -109,9 +117,11 @@ export function Breathing({ notes }: { notes: MindfulNote[] }) {
         <Stagger className="grid gap-x-10 gap-y-9 border-t border-white/14 pt-10 md:grid-cols-3">
           {notes.map((note, index) => (
             <StaggerItem key={note.title}>
-              <p className="eyebrow tabular-nums text-leaf">Note 0{index + 1}</p>
-              <h3 className="display-sm mt-4">{note.title}</h3>
-              <p className="mt-4 text-[1rem] leading-relaxed text-emerald-50/72">{note.body}</p>
+              <Parallax distance={inThree ? index * 22 : 0}>
+                <p className="eyebrow tabular-nums text-leaf">Note 0{index + 1}</p>
+                <h3 className="display-sm mt-4">{note.title}</h3>
+                <p className="mt-4 text-[1rem] leading-relaxed text-emerald-50/72">{note.body}</p>
+              </Parallax>
             </StaggerItem>
           ))}
         </Stagger>

@@ -7,6 +7,7 @@ import { EASE_OUT } from "@/lib/motion";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cn } from "@/lib/utils";
+import { Parallax } from "@/components/motion/parallax";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/reveal";
 import { SplitHeading } from "@/components/motion/split-heading";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -29,6 +30,12 @@ import { Eyebrow } from "@/components/ui/eyebrow";
    crossing the middle of the screen plays.
 
    The scenes belong to the steps by position (see <Scene>).
+
+   The section has depth as the page scrolls: the heading falls a little
+   behind, and the steps each travel at their own rate, the later the
+   faster. So they arrive as a flight of stairs, stand level as the row
+   crosses the middle of the screen, and climb on as it leaves. Stacked,
+   on a phone, the steps keep their places.
    ------------------------------------------------------------------ */
 
 /** Seconds a step holds its turn; long enough for its scene to play through. */
@@ -73,6 +80,10 @@ export function Approach({ steps }: { steps: ApproachStep[] }) {
   const inView = useInView(list, { margin: "-10% 0px -10% 0px" });
   // from 640px up the steps sit side by side and take turns; below that they are stacked
   const sideBySide = useMediaQuery("(min-width: 640px)");
+  // from 1280px up all four stand in one row; between the two they are two by two
+  const inOneRow = useMediaQuery("(min-width: 1280px)");
+  /** How far a step travels against the page, in px either way: more the further along the row it stands. */
+  const travel = (index: number) => (inOneRow ? 8 + index * 22 : sideBySide ? 10 + (index % 2) * 30 : 0);
 
   const [view, setView] = useState<View>({ active: 0, run: 0, planVisits: 0 });
   /** The steps take turns until the visitor chooses one. */
@@ -135,6 +146,7 @@ export function Approach({ steps }: { steps: ApproachStep[] }) {
       <div className="shell">
         <div className="mx-auto max-w-[72rem]">
           {/* heading and lede share a row, so the right of the heading is not left empty */}
+          <Parallax distance={sideBySide ? -24 : -10}>
           <div className="grid items-end gap-x-10 gap-y-5 lg:grid-cols-12">
             <div className="lg:col-span-8">
               <Reveal>
@@ -151,6 +163,7 @@ export function Approach({ steps }: { steps: ApproachStep[] }) {
               </p>
             </Reveal>
           </div>
+          </Parallax>
 
           {/* while a visitor is pointing at the steps, or has the keyboard in them, the turns wait */}
           <div
@@ -166,6 +179,7 @@ export function Approach({ steps }: { steps: ApproachStep[] }) {
                 const play = current && playing;
                 return (
                   <StaggerItem as="li" key={step.index}>
+                    <Parallax distance={travel(index)} className="h-full">
                     <div
                       ref={(element) => {
                         cards.current[index] = element;
@@ -240,6 +254,7 @@ export function Approach({ steps }: { steps: ApproachStep[] }) {
                       </h3>
                       <p className="mt-2 text-pretty text-[0.98rem] leading-relaxed text-ink-soft">{step.description}</p>
                     </div>
+                    </Parallax>
                   </StaggerItem>
                 );
               })}
