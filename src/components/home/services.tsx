@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import type { Service } from "@/types/content";
@@ -11,18 +11,64 @@ import { Reveal, Stagger, StaggerItem } from "@/components/motion/reveal";
 import { SplitHeading } from "@/components/motion/split-heading";
 import { Eyebrow } from "@/components/ui/eyebrow";
 
+/** How long the pointer rests on a row before it opens, and how long the rows take to settle afterwards (ms). */
+const HOVER_REST = 90;
+const HOVER_SETTLE = 450;
+
 /**
  * The five areas of work as one compact list beside a small photograph.
  *
  * One area is open at a time: its summary and what it includes, set as short
- * labels. Choosing another closes the first, and the photograph changes with it,
- * so the section keeps to a single screen whichever is open. On small screens the
+ * labels. Pointing at another opens it and closes the first (a tap, or focus from
+ * the keyboard, does the same), and the photograph changes with it, so the section
+ * keeps to a single screen whichever is open. On small screens the
  * open area carries its own photograph. Each row keeps its anchor
  * (`/#psychological-counseling` and so on).
  */
 export function Services({ services }: { services: Service[] }) {
   const reduce = useReducedMotion();
   const [active, setActive] = useState(0);
+
+  /* Opening on hover. Three things keep it calm:
+     - the pointer has to rest on a row for a moment, so crossing the list on the way
+       somewhere else opens nothing;
+     - while the rows are still sliding from the last change, nothing new opens;
+     - a row that slides under a pointer that is not moving is not a choice. */
+  const hover = useRef({ x: -1, y: -1, moved: false, waiting: -1, timer: 0, settled: 0 });
+  useEffect(() => {
+    const state = hover.current;
+    return () => window.clearTimeout(state.timer);
+  }, []);
+
+  const trackPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const state = hover.current;
+    state.moved = event.clientX !== state.x || event.clientY !== state.y;
+    state.x = event.clientX;
+    state.y = event.clientY;
+  };
+
+  const pointAt = (event: PointerEvent<HTMLButtonElement>, index: number) => {
+    const state = hover.current;
+    if (event.pointerType !== "mouse" || !state.moved || index === active || state.waiting === index) return;
+    window.clearTimeout(state.timer);
+    state.waiting = index;
+    state.timer = window.setTimeout(
+      () => {
+        if (state.waiting !== index) return;
+        state.waiting = -1;
+        state.settled = performance.now() + HOVER_SETTLE;
+        setActive(index);
+      },
+      Math.max(HOVER_REST, state.settled - event.timeStamp),
+    );
+  };
+
+  const pointAway = (index: number) => {
+    const state = hover.current;
+    if (state.waiting !== index) return;
+    window.clearTimeout(state.timer);
+    state.waiting = -1;
+  };
 
   return (
     <section id="services" className="section-y relative scroll-mt-10 bg-paper">
@@ -45,6 +91,7 @@ export function Services({ services }: { services: Service[] }) {
 
           <div className="mt-8 grid items-start gap-x-14 gap-y-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
             {/* ---------------------------------------------------------- the five areas */}
+            <div onPointerMoveCapture={trackPointer}>
             <Stagger as="ol" stagger={0.06} className="border-b border-ink/12">
               {services.map((service, index) => {
                 const open = index === active;
@@ -57,6 +104,9 @@ export function Services({ services }: { services: Service[] }) {
                         aria-expanded={open}
                         aria-controls={`service-${service.slug}-panel`}
                         onClick={() => setActive(index)}
+                        onFocus={() => setActive(index)}
+                        onPointerMove={(event) => pointAt(event, index)}
+                        onPointerLeave={() => pointAway(index)}
                         className="group flex w-full cursor-pointer items-center gap-4 py-4 text-left sm:gap-5"
                       >
                         <span
@@ -136,6 +186,7 @@ export function Services({ services }: { services: Service[] }) {
                 );
               })}
             </Stagger>
+            </div>
 
             {/* ---------------------------------------------------------- a small picture of the open area */}
             <Reveal delay={0.1} className="hidden lg:block">
