@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  images: {
+    formats: ["image/avif", "image/webp"],
+    // 90 is for the home hero's central figure, which is looked at closely
+    qualities: [75, 90],
+  },
   turbopack: {
     rules: {
       "*.css": {
