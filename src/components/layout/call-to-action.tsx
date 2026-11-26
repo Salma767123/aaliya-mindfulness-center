@@ -5,11 +5,16 @@ import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLenis } from "lenis/react";
-import { motion, useMotionValue, useSpring } from "motion/react";
+import { motion, useInView, useMotionValue, useSpring } from "motion/react";
 import { mapLinkUrl, site } from "@/content/site";
+import { EASE_OUT, VIEWPORT } from "@/lib/motion";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { parseHeading, plainHeading } from "@/lib/utils";
+import { Parallax } from "@/components/motion/parallax";
+import { Reveal, Stagger, StaggerItem } from "@/components/motion/reveal";
+import { SplitHeading } from "@/components/motion/split-heading";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { ArrowUpRight, ClockIcon, PhoneIcon, PinIcon } from "@/components/ui/icons";
 import { SampleTag } from "@/components/ui/sample-tag";
 
@@ -39,6 +44,12 @@ import { SampleTag } from "@/components/ui/sample-tag";
    falls behind the page, the light behind it falls further behind still,
    a reflection crosses the glass, and the footer closes over them all. Small screens and reduced motion get it standing
    still, awake.
+
+   On a phone (below 768px) there is no tablet: a device drawn inside a
+   device only takes room from the words. The invitation is set straight
+   on the green there, as it was before the tablet: rings spreading from
+   behind the heading, the two actions, and where to find the center
+   (see <PhoneInvitation>).
    ------------------------------------------------------------------ */
 
 type CallToActionProps = {
@@ -316,8 +327,10 @@ export function CallToAction({
       className="grain relative z-20 overflow-x-clip bg-emerald-800 text-white"
       style={{ clipPath: "inset(-200vh 0 0 0)" }}
     >
+      <PhoneInvitation heading={heading} body={body} />
+
       <div
-        className="shell flex items-center justify-center py-14 lg:min-h-[calc(100svh-4.5rem)] lg:py-12"
+        className="shell hidden items-center justify-center py-14 md:flex lg:min-h-[calc(100svh-4.5rem)] lg:py-12"
         onPointerMove={handleLean}
         onPointerLeave={settle}
       >
@@ -482,5 +495,183 @@ function Detail({
         <div className={row}>{inner}</div>
       )}
     </li>
+  );
+}
+
+/* ----------------------------------------------------------------------- phones */
+
+/**
+ * The invitation on a phone: set straight on the green, with rings spreading from behind
+ * the heading. The words rise in turn as the section comes into view, the rules between
+ * the ways to reach the center draw themselves, and each of those ways has a small sign
+ * of life: the pin bobs, the phone rings, the clock turns.
+ */
+function PhoneInvitation({ heading, body }: { heading: string; body: string }) {
+  const reduce = useReducedMotion();
+  const ways = useRef<HTMLDivElement>(null);
+  const waysInView = useInView(ways, { margin: "0px 0px -10% 0px" });
+  const live = waysInView && !reduce;
+
+  return (
+    <div className="relative overflow-clip md:hidden">
+      {/* ripples, drifting a little against the page, and a light that breathes with them */}
+      <Parallax
+        distance={-36}
+        className="pointer-events-none absolute left-1/2 top-[38%] size-[min(120vw,34rem)] -translate-x-1/2 -translate-y-1/2"
+      >
+        <motion.span
+          aria-hidden
+          className="absolute inset-[8%] rounded-full bg-[radial-gradient(closest-side,rgb(194_223_208/0.24),transparent)]"
+          animate={reduce ? undefined : { scale: [0.88, 1.1, 0.88], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 7, ease: "easeInOut", repeat: Infinity }}
+        />
+        {[0, 1, 2, 3].map((ring) => (
+          <span
+            key={ring}
+            aria-hidden
+            className="absolute inset-0 animate-ripple rounded-full border border-emerald-200/35"
+            style={{ animationDelay: `${ring * 1.75}s` }}
+          />
+        ))}
+      </Parallax>
+
+      <div className="shell relative pb-12 pt-16 text-center">
+        <Reveal className="flex justify-center">
+          <Eyebrow tone="light">Book a consultation</Eyebrow>
+        </Reveal>
+        <SplitHeading text={heading} emClassName="text-emerald-200" className="display-xl mx-auto mt-6 max-w-[17ch]" />
+        <Reveal delay={0.2}>
+          <p className="lede mx-auto mt-6 max-w-xl text-emerald-50/80">{body}</p>
+        </Reveal>
+        <Reveal delay={0.3} className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Button href="/contact" variant="light">
+            Request an appointment
+          </Button>
+          <Button href={site.phone.href} variant="ghost-light" icon={false}>
+            {`Call ${site.phone.display}`}
+          </Button>
+        </Reveal>
+
+        {/* where to find us */}
+        <div ref={ways} className="relative mx-auto mt-12 max-w-lg text-left">
+          <Rule />
+          <Stagger as="ul" stagger={0.14}>
+            <Way
+              label="Visit"
+              href={mapLinkUrl()}
+              action="Get directions"
+              external
+              icon={
+                <motion.span
+                  className="grid place-items-center"
+                  animate={live ? { y: [0, -3.5, 0] } : { y: 0 }}
+                  transition={live ? { duration: 2.2, ease: "easeInOut", repeat: Infinity } : { duration: 0.3 }}
+                >
+                  <PinIcon className="size-5" />
+                </motion.span>
+              }
+            >
+              {site.address.lines.slice(1).join(", ")}
+            </Way>
+            <Way
+              label="Call"
+              href={site.phone.href}
+              action="Call now"
+              icon={
+                <motion.span
+                  className="grid place-items-center"
+                  animate={live ? { rotate: [0, -16, 13, -10, 7, 0] } : { rotate: 0 }}
+                  transition={live ? { duration: 0.9, ease: "easeInOut", repeat: Infinity, repeatDelay: 2.4 } : { duration: 0.3 }}
+                >
+                  <PhoneIcon className="size-5" />
+                </motion.span>
+              }
+            >
+              {site.phone.display}
+            </Way>
+            <Way
+              label="Hours"
+              icon={
+                <motion.span
+                  className="grid place-items-center"
+                  animate={live ? { rotate: [0, 360] } : { rotate: 0 }}
+                  transition={live ? { duration: 9, ease: "linear", repeat: Infinity } : { duration: 0.3 }}
+                >
+                  <ClockIcon className="size-5" />
+                </motion.span>
+              }
+            >
+              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                {site.hours.text}
+                {site.hours.placeholder ? <SampleTag label="To be confirmed" tone="light" /> : null}
+              </span>
+            </Way>
+          </Stagger>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A hairline that draws itself from the left as it comes into view. */
+function Rule({ className = "top-0" }: { className?: string }) {
+  return (
+    <motion.span
+      aria-hidden
+      className={`absolute inset-x-0 h-px origin-left bg-white/18 ${className}`}
+      initial={{ scaleX: 0 }}
+      whileInView={{ scaleX: 1 }}
+      viewport={VIEWPORT}
+      transition={{ duration: 1.2, ease: EASE_OUT }}
+    />
+  );
+}
+
+/** One way to reach the center, on the green. With a link, the whole row is the link and says what it will do. */
+function Way({
+  icon,
+  label,
+  href,
+  action,
+  external,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  href?: string;
+  action?: string;
+  external?: boolean;
+  children: ReactNode;
+}) {
+  const inner = (
+    <>
+      <span className="grid size-11 flex-none place-items-center rounded-full bg-white/10 text-leaf ring-1 ring-inset ring-white/15">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="eyebrow block text-emerald-200/80">{label}</span>
+        <span className="mt-1.5 block text-[0.98rem] leading-snug text-white/90">{children}</span>
+        {action ? (
+          <span className="mt-1.5 inline-flex items-center gap-1.5 text-[0.86rem] font-medium text-emerald-200">
+            {action}
+            <ArrowUpRight className="size-3.5" />
+          </span>
+        ) : null}
+      </span>
+    </>
+  );
+  const row = "flex items-center gap-4 py-4";
+
+  return (
+    <StaggerItem as="li" className="relative">
+      {href ? (
+        <a href={href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className={row}>
+          {inner}
+        </a>
+      ) : (
+        <div className={row}>{inner}</div>
+      )}
+      <Rule className="bottom-0" />
+    </StaggerItem>
   );
 }
