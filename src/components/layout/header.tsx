@@ -148,21 +148,28 @@ function MobileMenu({ open, pathname, onClose }: { open: boolean; pathname: stri
           role="dialog"
           aria-modal="true"
           aria-label="Site menu"
-          data-lenis-prevent
-          className="fixed inset-0 z-[80] overflow-y-auto bg-mist lg:hidden"
+          className="fixed inset-0 z-[80] overflow-hidden bg-mist lg:hidden"
           initial={{ clipPath: "inset(0% 0% 100% 0%)" }}
           animate={{ clipPath: "inset(0% 0% 0% 0%)" }}
           exit={{ clipPath: "inset(0% 0% 100% 0%)" }}
           transition={{ duration: 0.85, ease: EASE_OUT }}
         >
-          {/* still-water rings, bottom right */}
-          <div aria-hidden className="pointer-events-none absolute -bottom-40 -right-40 size-[30rem]">
-            <span className="absolute inset-0 rounded-full border border-emerald-600/15" />
-            <span className="absolute inset-16 rounded-full border border-emerald-600/15" />
-            <span className="absolute inset-32 rounded-full border border-emerald-600/15" />
+          {/* still-water rings, bottom right; the sheet cuts off the part that hangs past the corner */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -bottom-40 -right-40 size-[30rem]">
+              <span className="absolute inset-0 rounded-full border border-emerald-600/15" />
+              <span className="absolute inset-16 rounded-full border border-emerald-600/15" />
+              <span className="absolute inset-32 rounded-full border border-emerald-600/15" />
+            </div>
           </div>
 
-          <div className="shell relative flex min-h-full flex-col pb-8 pt-28">
+          {/* The list scrolls only if the screen is too short for it, only up and down, and only in the
+              room under the header bar, so a link can never slide up behind the logo or the close button. */}
+          <div
+            data-lenis-prevent
+            className="absolute inset-x-0 bottom-0 top-[5.5rem] touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain"
+          >
+          <div className="shell relative flex min-h-full flex-col pb-6 pt-2">
             <nav aria-label="Mobile">
               <ul className="border-t border-ink/10">
                 {navigation.map((item, index) => {
@@ -180,11 +187,11 @@ function MobileMenu({ open, pathname, onClose }: { open: boolean; pathname: stri
                           href={item.href}
                           onClick={onClose}
                           aria-current={active ? "page" : undefined}
-                          className="flex items-baseline justify-between py-4"
+                          className="flex items-center justify-between py-3.5"
                         >
                           <span
                             className={cn(
-                              "font-display text-[2.6rem] leading-none tracking-[-0.02em]",
+                              "display-sm",
                               active ? "text-emerald-700" : "text-ink",
                             )}
                           >
@@ -200,7 +207,7 @@ function MobileMenu({ open, pathname, onClose }: { open: boolean; pathname: stri
             </nav>
 
             <motion.div
-              className="mt-auto space-y-6 pt-10"
+              className="mt-auto space-y-5 pt-8"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, transition: { duration: 0.2 } }}
@@ -220,6 +227,7 @@ function MobileMenu({ open, pathname, onClose }: { open: boolean; pathname: stri
                 Book a consultation
               </Button>
             </motion.div>
+          </div>
           </div>
         </motion.div>
       ) : null}

@@ -15,7 +15,7 @@ export function BackToTop() {
     <button
       type="button"
       onClick={handleClick}
-      className="tap group inline-flex items-center gap-3 text-[0.82rem] text-emerald-200/80 transition-colors duration-300 hover:text-white"
+      className="tap group inline-flex flex-none items-center gap-3 whitespace-nowrap text-[0.82rem] text-emerald-200/80 transition-colors duration-300 hover:text-white"
     >
       Back to top
       <span className="grid size-9 place-items-center rounded-full border border-white/20 transition-colors duration-300 group-hover:border-white/60">
